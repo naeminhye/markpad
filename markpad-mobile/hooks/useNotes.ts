@@ -1,34 +1,59 @@
 import { useState, useEffect, useCallback } from 'react'
-import * as FileSystem from 'expo-file-system/legacy'
-import * as DocumentPicker from 'expo-document-picker'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 import { parseFrontmatter, serializeNote, Note } from '../lib/frontmatter'
 
 const FOLDER_KEY = 'markpad_folder'
+const WEB_NOTES_KEY = 'markpad_notes'
+
+// ─── web storage helpers ───────────────────────────────────────
+function webGetNotes(): Note[] {
+    try {
+        const raw = localStorage.getItem(WEB_NOTES_KEY)
+        return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+}
+
+function webSaveNotes(notes: Note[]) {
+    localStorage.setItem(WEB_NOTES_KEY, JSON.stringify(notes))
+}
+
+// ─── native imports (lazy to avoid web bundling errors) ────────
+async function getNativeModules() {
+    const fs = await import('expo-file-system/legacy')
+    const storage = await import('@react-native-async-storage/async-storage')
+    return { fs, AsyncStorage: storage.default }
+}
 
 export function useNotes() {
-    const [folder, setFolder] = useState<string | null>(null)
+    const [folder, setFolder] = useState<string | null>(
+        Platform.OS === 'web' ? 'web' : null
+    )
     const [notes, setNotes] = useState<Note[]>([])
     const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        AsyncStorage.getItem(FOLDER_KEY).then(val => {
-            if (val) setFolder(val)
-        })
+    // ─── web ──────────────────────────────────────────────────────
+    const loadNotesWeb = useCallback(() => {
+        setLoading(true)
+        const loaded = webGetNotes()
+        loaded.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        setNotes(loaded)
+        setLoading(false)
     }, [])
 
-    const loadNotes = useCallback(async (dir: string) => {
+    // ─── native ───────────────────────────────────────────────────
+    const loadNotesNative = useCallback(async (dir: string) => {
         setLoading(true)
         try {
-            const result = await FileSystem.readDirectoryAsync(dir)
-            const mdFiles = result.filter(f => f.endsWith('.md'))
+            const { fs } = await getNativeModules()
+            const result = await fs.readDirectoryAsync(dir)
+            const mdFiles = result.filter((f: string) => f.endsWith('.md'))
             const loaded = await Promise.all(
-                mdFiles.map(async filename => {
-                    const raw = await FileSystem.readAsStringAsync(`${dir}/${filename}`)
+                mdFiles.map(async (filename: string) => {
+                    const raw = await fs.readAsStringAsync(`${dir}/${filename}`)
                     return parseFrontmatter(raw, filename)
                 })
             )
-            loaded.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+            loaded.sort((a: Note, b: Note) => b.updatedAt.localeCompare(a.updatedAt))
             setNotes(loaded)
         } finally {
             setLoading(false)
@@ -36,67 +61,144 @@ export function useNotes() {
     }, [])
 
     useEffect(() => {
-        if (folder) loadNotes(folder)
-    }, [folder, loadNotes])
+        if (Platform.OS === 'web') {
+            loadNotesWeb()
+        } else {
+            getNativeModules().then(({ AsyncStorage }) => {
+                AsyncStorage.getItem(FOLDER_KEY).then(val => {
+                    if (val) setFolder(val)
+                })
+            })
+        }
+    }, [])
 
+    useEffect(() => {
+        if (Platform.OS !== 'web' && folder) loadNotesNative(folder)
+    }, [folder])
+
+    // ─── pickFolder ───────────────────────────────────────────────
     const pickFolder = async () => {
-        // on mobile we use the app's document directory
-        // user can point this to iCloud/Google Drive via Files app
-        const dir = FileSystem.documentDirectory + 'markpad-notes/'
-        const info = await FileSystem.getInfoAsync(dir)
-        if (!info.exists) await FileSystem.makeDirectoryAsync(dir)
+        if (Platform.OS === 'web') {
+            setFolder('web')
+            return
+        }
+        const { fs, AsyncStorage } = await getNativeModules()
+        const dir = fs.documentDirectory + 'markpad-notes/'
+        const info = await fs.getInfoAsync(dir)
+        if (!info.exists) await fs.makeDirectoryAsync(dir)
         await AsyncStorage.setItem(FOLDER_KEY, dir)
         setFolder(dir)
     }
 
+    const resetFolder = async () => {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem(WEB_NOTES_KEY)
+            setNotes([])
+            return
+        }
+        const { AsyncStorage } = await getNativeModules()
+        await AsyncStorage.removeItem(FOLDER_KEY)
+        setFolder(null)
+        setNotes([])
+    }
+
+    // ─── saveNote ─────────────────────────────────────────────────
     const saveNote = async (note: Note) => {
+        if (Platform.OS === 'web') {
+            const current = webGetNotes()
+            const exists = current.findIndex(n => n.id === note.id)
+            const updated = exists >= 0
+                ? current.map(n => n.id === note.id ? note : n)
+                : [note, ...current]
+            webSaveNotes(updated)
+            setNotes(updated)
+            return
+        }
         if (!folder) return
+        const { fs } = await getNativeModules()
         const content = serializeNote(note)
-        await FileSystem.writeAsStringAsync(`${folder}/${note.id}.md`, content)
+        await fs.writeAsStringAsync(`${folder}/${note.id}.md`, content)
         setNotes(prev => prev.map(n => n.id === note.id ? { ...note, raw: content } : n))
     }
 
+    // ─── createNote ───────────────────────────────────────────────
     const createNote = async () => {
-        if (!folder) return null
         const id = `note-${Date.now()}`
         const now = new Date().toISOString()
         const note: Note = {
             id, title: 'untitled', tags: [], body: '', raw: '',
             createdAt: now, updatedAt: now,
         }
+
+        if (Platform.OS === 'web') {
+            const current = webGetNotes()
+            const updated = [note, ...current]
+            webSaveNotes(updated)
+            setNotes(updated)
+            return note
+        }
+
+        if (!folder) return null
+        const { fs } = await getNativeModules()
         const content = serializeNote(note)
-        await FileSystem.writeAsStringAsync(`${folder}/${id}.md`, content)
+        await fs.writeAsStringAsync(`${folder}/${note.id}.md`, content)
         setNotes(prev => [note, ...prev])
         return note
     }
 
+    // ─── deleteNote ───────────────────────────────────────────────
     const deleteNote = async (id: string) => {
+        if (Platform.OS === 'web') {
+            const updated = webGetNotes().filter(n => n.id !== id)
+            webSaveNotes(updated)
+            setNotes(updated)
+            return
+        }
         if (!folder) return
-        await FileSystem.deleteAsync(`${folder}/${id}.md`)
+        const { fs } = await getNativeModules()
+        await fs.deleteAsync(`${folder}/${id}.md`)
         setNotes(prev => prev.filter(n => n.id !== id))
     }
 
+    // ─── renameNote ───────────────────────────────────────────────
     const renameNote = async (id: string, newTitle: string) => {
-        if (!folder) return
         const note = notes.find(n => n.id === id)
         if (!note) return
         const newId = newTitle.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
         if (!newId || newId === id) return
-        const exists = notes.some(n => n.id === newId)
-        if (exists) return
+        if (notes.some(n => n.id === newId)) return
         const updated = { ...note, id: newId, title: newTitle.trim() }
+
+        if (Platform.OS === 'web') {
+            const current = webGetNotes()
+            const updatedList = current.map(n => n.id === id ? updated : n)
+            webSaveNotes(updatedList)
+            setNotes(updatedList)
+            return updated
+        }
+
+        if (!folder) return
+        const { fs } = await getNativeModules()
         const content = serializeNote(updated)
-        await FileSystem.writeAsStringAsync(`${folder}/${newId}.md`, content)
-        await FileSystem.deleteAsync(`${folder}/${id}.md`)
+        await fs.writeAsStringAsync(`${folder}/${newId}.md`, content)
+        await fs.deleteAsync(`${folder}/${id}.md`)
         setNotes(prev => prev.map(n => n.id === id ? updated : n))
         return updated
     }
 
-    const resetFolder = async () => {
-        await AsyncStorage.removeItem(FOLDER_KEY)
-        setFolder(null)
-        setNotes([])
+    return {
+        folder,
+        notes,
+        loading,
+        pickFolder,
+        resetFolder,
+        saveNote,
+        createNote,
+        deleteNote,
+        renameNote,
+        reload: () => {
+            if (Platform.OS === 'web') loadNotesWeb()
+            else if (folder) loadNotesNative(folder)
+        }
     }
-
-    return { folder, notes, loading, pickFolder, resetFolder, saveNote, createNote, deleteNote, renameNote, reload: () => folder && loadNotes(folder) }
 }

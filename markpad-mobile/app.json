@@ -6,7 +6,8 @@
     "scheme": "markpad",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "assetBundlePatterns": [
       "**/*"
