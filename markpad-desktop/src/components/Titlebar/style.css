@@ -1,0 +1,12 @@
+.titlebar { height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1.5px solid var(--border); flex-shrink: 0; user-select: none; }
+
+.titlebar-name { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+
+.titlebar-controls { display: flex; gap: 2px; }
+.titlebar-controls button { background: transparent; border: 1px solid transparent; color: var(--muted); font-family: var(--mono); font-size: 14px; width: 28px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.titlebar-controls button:hover { border-color: var(--border); color: var(--fg); }
+
+/* BUTTON STYLES */
+.close-btn:hover { background: var(--fg) !important; color: var(--bg) !important; }
+.folder-btn { font-size: 12px !important; margin-right: 8px; }
+.guide-btn { font-size: 12px !important; margin-right: 4px; }

@@ -1,0 +1,21 @@
+.guide-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+
+.guide-box { width: 400px; background: var(--bg); border: 1.5px solid var(--border); }
+
+.guide-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1.5px solid var(--border); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+.guide-close { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; padding: 0; }
+.guide-close:hover { color: var(--fg); }
+
+.guide-list { padding: 8px 0; }
+
+.guide-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; border-bottom: 1px solid var(--bg2); }
+.guide-row:last-child { border-bottom: none; }
+
+.guide-keys { display: flex; gap: 4px; }
+
+kbd { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border: 1.5px solid var(--border); color: var(--fg); background: var(--bg2); letter-spacing: 0.04em; }
+
+.guide-desc { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+
+.guide-hint { padding: 8px 16px; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; border-top: 1px solid var(--bg2); }
