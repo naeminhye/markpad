@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "markpad",
+    "slug": "markpad",
+    "version": "1.0.0",
+    "scheme": "markpad",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
