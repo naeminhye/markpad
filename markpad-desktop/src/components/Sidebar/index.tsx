@@ -46,6 +46,12 @@ export default function Sidebar({ notes, loading, activeId, folder, onSelect, on
                     onChange={e => setSearch(e.target.value)}
                     spellCheck={false}
                 />
+                <div className="note-count">
+                    {search || activeTag
+                        ? `${filtered.length} of ${notes.length} notes`
+                        : `${notes.length} note${notes.length !== 1 ? 's' : ''}`
+                    }
+                </div>
             </div>
 
             {allTags.length > 0 && (

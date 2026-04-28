@@ -1,6 +1,13 @@
 .editor-root { display: flex; flex-direction: column; height: 100vh; }
 
-.editor-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1.5px solid var(--border); flex-shrink: 0; }
+.editor-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1.5px solid var(--border); flex-shrink: 0; gap: 8px; }
+
+.toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+.export-btns { display: flex; align-items: center; gap: 4px; padding-left: 12px; border-left: 1px solid var(--bg2); }
+
+.export-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-right: 2px; }
+
 .editor-title { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
 
 .mode-btns { display: flex; gap: 4px; }
@@ -35,3 +42,10 @@
 
 .tag-input { background: transparent; border: none; font-family: var(--mono); font-size: 11px; color: var(--fg); outline: none; min-width: 80px; letter-spacing: 0.06em; }
 .tag-input::placeholder { color: var(--muted); }
+
+.tb-btn + .tb-btn { margin-left: 4px; }
+
+.wikilink { cursor: pointer; font-family: var(--mono); font-size: 12px; padding: 1px 4px; border: 1px solid; }
+.wikilink-exists { border-color: var(--fg); color: var(--fg); }
+.wikilink-missing { border-color: var(--muted); color: var(--muted); border-style: dashed; }
+.wikilink:hover { background: var(--fg); color: var(--bg); }

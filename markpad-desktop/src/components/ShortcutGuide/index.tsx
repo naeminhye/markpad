@@ -10,6 +10,7 @@ const shortcuts = [
     { keys: ['⌘', 'N'], description: 'new note' },
     { keys: ['⌘', 'S'], description: 'force save' },
     { keys: ['⌘', 'K'], description: 'search overlay' },
+    { keys: ['⌘', 'P'], description: 'export note as PDF' },
     { keys: ['⌘', 'W'], description: 'close window' },
     { keys: ['Esc'], description: 'close overlay / cancel rename' },
     { keys: ['Enter'], description: 'confirm rename' },
@@ -19,7 +20,6 @@ const shortcuts = [
 ]
 
 export default function ShortcutGuide({ onClose }: Props) {
-    // inside ShortcutGuide component:
     useEffect(() => {
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
         window.addEventListener('keydown', handler)

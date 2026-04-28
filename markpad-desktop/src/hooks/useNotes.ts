@@ -116,5 +116,23 @@ export function useNotes() {
         return updated
     }
 
-    return { folder, notes, loading, pickFolder, resetFolder, saveNote, createNote, deleteNote, renameNote, reload: () => folder && loadNotes(folder) }
+    const createNoteWithContent = async (id: string, title: string, body: string) => {
+        if (!folder) return null
+        const now = new Date().toISOString()
+        const note: Note = {
+            id,
+            title,
+            tags: [],
+            body,
+            raw: '',
+            createdAt: now,
+            updatedAt: now,
+        }
+        const content = serializeNote(note)
+        await writeTextFile(`${folder}/${id}.md`, content)
+        setNotes(prev => [note, ...prev])
+        return note
+    }
+    
+    return { folder, notes, loading, pickFolder, resetFolder, saveNote, createNote, createNoteWithContent, deleteNote, renameNote, reload: () => folder && loadNotes(folder) }
 }

@@ -1,18 +1,18 @@
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useNotesContext } from '../context/NotesContext'
+import { useTheme } from '../context/ThemeContext'
 import { useSearch } from '../hooks/useSearch'
 import NoteList from '../components/NoteList'
 import SearchBar from '../components/SearchBar'
-import { useNotesContext } from '../context/NotesContext'
+
+const themeIcon = { light: '○', dark: '●', system: '◐' }
 
 export default function Index() {
     const router = useRouter()
-    const scheme = useColorScheme()
-    const dark = scheme === 'dark'
+    const { theme, cycleTheme, colors } = useTheme()
     const { folder, notes, loading, pickFolder, deleteNote, renameNote } = useNotesContext()
     const { query, setQuery, activeTag, setActiveTag, allTags, results } = useSearch(notes)
-
-    const colors = getColors(dark)
 
     if (!folder) {
         return (
@@ -30,12 +30,17 @@ export default function Index() {
         <View style={[styles.root, { backgroundColor: colors.bg }]}>
             <View style={[styles.header, { borderBottomColor: colors.fg }]}>
                 <Text style={[styles.appName, { color: colors.fg }]}>markpad</Text>
-                <TouchableOpacity
-                    onPress={() => router.push('/note/new')}
-                    style={[styles.newBtn, { borderColor: colors.fg }]}
-                >
-                    <Text style={[styles.newBtnText, { color: colors.fg }]}>+</Text>
-                </TouchableOpacity>
+                <View style={styles.headerRight}>
+                    <TouchableOpacity onPress={cycleTheme} style={styles.iconBtn}>
+                        <Text style={[styles.iconBtnText, { color: colors.muted }]}>{themeIcon[theme]}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => router.push('/note/new')}
+                        style={[styles.newBtn, { borderColor: colors.fg }]}
+                    >
+                        <Text style={[styles.newBtnText, { color: colors.fg }]}>+</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <SearchBar
@@ -59,26 +64,17 @@ export default function Index() {
     )
 }
 
-export function getColors(dark: boolean) {
-    return {
-        bg: dark ? '#0f0f0f' : '#fafafa',
-        bg2: dark ? '#1a1a1a' : '#f0f0f0',
-        fg: dark ? '#e8e8e8' : '#0f0f0f',
-        muted: dark ? '#888' : '#666',
-        border: dark ? '#333' : '#ddd',
-        mono: 'JetBrainsMono_400Regular',
-        monoBold: 'JetBrainsMono_500Medium',
-    }
-}
-
 const styles = StyleSheet.create({
     root: { flex: 1 },
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12, borderBottomWidth: 1.5 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     appName: { fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', fontFamily: 'JetBrainsMono_500Medium' },
     emptyHint: { fontSize: 12, fontFamily: 'JetBrainsMono_400Regular' },
     pickBtn: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 24, borderWidth: 1.5 },
     pickBtnText: { fontSize: 12, fontFamily: 'JetBrainsMono_400Regular', letterSpacing: 1 },
     newBtn: { width: 32, height: 32, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
     newBtnText: { fontSize: 20, lineHeight: 24, fontFamily: 'JetBrainsMono_400Regular' },
+    iconBtn: { padding: 4 },
+    iconBtnText: { fontSize: 16, fontFamily: 'JetBrainsMono_400Regular' },
 })

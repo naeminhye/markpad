@@ -10,3 +10,4 @@
 .close-btn:hover { background: var(--fg) !important; color: var(--bg) !important; }
 .folder-btn { font-size: 12px !important; margin-right: 8px; }
 .guide-btn { font-size: 12px !important; margin-right: 4px; }
+.theme-btn { font-size: 13px !important; margin-right: 4px; }

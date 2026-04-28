@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { searchNotes } from '../../hooks/useSearch'
 import { Note } from '../../lib/frontmatter'
 import './style.css'
 
@@ -20,11 +21,7 @@ export default function SearchOverlay({ notes, onSelect, onClose }: Props) {
         return () => window.removeEventListener('keydown', handler)
     }, [onClose])
 
-    const results = !query ? [] : notes.filter(n =>
-        n.title.toLowerCase().includes(query.toLowerCase()) ||
-        n.body.toLowerCase().includes(query.toLowerCase()) ||
-        n.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
-    ).slice(0, 8)
+    const results = searchNotes(notes, query, null).slice(0, 8)
 
     return (
         <div className="overlay-backdrop" onClick={onClose}>

@@ -11,6 +11,9 @@
     ],
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "ios": {
+      "bundleIdentifier": "com.anonymous.markpad"
+    }
   }
 }
