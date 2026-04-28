@@ -7,6 +7,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import Markdown from 'react-native-markdown-display'
 import { useNotesContext } from '../../context/NotesContext'
 import { useTheme } from '../../context/ThemeContext'
+import FormatToolbar from '../../components/FormatToolbar'
+import { applyFormat, FormatAction } from '../../lib/formatting'
+import { useUndoRedo } from '../../hooks/useUndoRedo'
 
 type Mode = 'edit' | 'preview'
 
@@ -16,11 +19,13 @@ export default function NoteScreen() {
     const { notes, createNote, saveNote } = useNotesContext()
     const { colors } = useTheme()
 
-    const [body, setBody] = useState('')
+    const { value: body, push: pushHistory, undo, redo, reset: resetHistory, canUndo, canRedo, selection: undoSelection } = useUndoRedo('')
     const [tags, setTags] = useState<string[]>([])
     const [tagInput, setTagInput] = useState('')
     const [dirty, setDirty] = useState(false)
     const [mode, setMode] = useState<Mode>('edit')
+    const [selection, setSelection] = useState({ start: 0, end: 0 })
+
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const noteRef = useRef<any>(null)
 
@@ -30,14 +35,14 @@ export default function NoteScreen() {
                 const note = await createNote()
                 if (note) {
                     noteRef.current = note
-                    setBody(note.body)
+                    resetHistory(note.body)
                     setTags(note.tags)
                 }
             } else {
                 const note = notes.find(n => n.id === id)
                 if (note) {
                     noteRef.current = note
-                    setBody(note.body)
+                    resetHistory(note.body)
                     setTags(note.tags)
                 }
             }
@@ -62,10 +67,40 @@ export default function NoteScreen() {
         }, 800)
     }
 
-    const handleBodyChange = (val: string) => {
-        setBody(val)
+    const handleBodyChange = (val: string, sel?: { start: number; end: number }) => {
+        pushHistory({
+            value: val,
+            selectionStart: sel?.start ?? 0,
+            selectionEnd: sel?.end ?? 0,
+        })
         setDirty(true)
         triggerSave(val, tags)
+    }
+
+    const handleFormat = (action: FormatAction) => {
+        const result = applyFormat(body, selection.start, selection.end, action)
+        handleBodyChange(result.value, { start: result.selectionStart, end: result.selectionEnd })
+        setTimeout(() => {
+            setSelection({ start: result.selectionStart, end: result.selectionEnd })
+        }, 50)
+    }
+
+    const handleUndo = () => {
+        const prev = undo()
+        if (prev) {
+            setDirty(true)
+            triggerSave(prev.value, tags)
+            setSelection({ start: prev.selectionStart, end: prev.selectionEnd })
+        }
+    }
+
+    const handleRedo = () => {
+        const next = redo()
+        if (next) {
+            setDirty(true)
+            triggerSave(next.value, tags)
+            setSelection({ start: next.selectionStart, end: next.selectionEnd })
+        }
     }
 
     const addTag = () => {
@@ -152,6 +187,17 @@ export default function NoteScreen() {
                 />
             </ScrollView>
 
+            {mode === 'edit' && (
+                <FormatToolbar
+                    onAction={handleFormat}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    colors={colors}
+                />
+            )}
+
             {mode === 'edit' ? (
                 <TextInput
                     style={[styles.editor, { color: colors.fg, fontFamily: colors.mono, backgroundColor: colors.bg }]}
@@ -163,6 +209,11 @@ export default function NoteScreen() {
                     autoCorrect={false}
                     autoCapitalize="none"
                     textAlignVertical="top"
+                    onSelectionChange={e => setSelection({
+                        start: e.nativeEvent.selection.start,
+                        end: e.nativeEvent.selection.end
+                    })}
+                    selection={selection.start !== selection.end ? selection : undefined}
                 />
             ) : (
                 <ScrollView style={[styles.preview, { backgroundColor: colors.bg }]} contentContainerStyle={styles.previewContent}>

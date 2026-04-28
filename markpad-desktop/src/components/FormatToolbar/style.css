@@ -1,0 +1,7 @@
+.format-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px 12px; border-bottom: 1px solid var(--bg2); flex-shrink: 0; flex-wrap: wrap; }
+
+.fmt-btn { font-family: var(--mono); font-size: 11px; padding: 3px 8px; background: transparent; border: 1px solid transparent; color: var(--muted); cursor: pointer; letter-spacing: 0.04em; min-width: 28px; text-align: center; }
+.fmt-btn:hover { border-color: var(--border); color: var(--fg); }
+.fmt-btn:active { background: var(--fg); color: var(--bg); }
+
+.fmt-btn-history { margin-right: 6px; border-right: 1px solid var(--bg2) !important; padding-right: 10px; }

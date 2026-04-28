@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Note } from '../../lib/frontmatter'
-import { renderMarkdown, renderMarkdownWithWikilinks } from '../../lib/markdown'
-import { exportNote, ExportFormat } from '../../lib/export'
-import { exportNotePDF } from '../../lib/pdf'
+import { renderMarkdownWithWikilinks } from '../../lib/markdown'
+import { exportNote, } from '../../lib/export'
+import { applyFormat, FormatAction } from '../../lib/formatting'
+
+import FormatToolbar from '../FormatToolbar'
 
 import './style.css'
 
@@ -22,6 +24,8 @@ export default function Editor({ note, notes, onSave, onNavigate }: Props) {
     const [mode, setMode] = useState<Mode>('edit')
     const [dirty, setDirty] = useState(false)
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
         setBody(note.body)
@@ -69,6 +73,37 @@ export default function Editor({ note, notes, onSave, onNavigate }: Props) {
             const title = wikilink.dataset.noteTitle || ''
             onNavigate(id, title)
         }
+    }
+
+    const handleFormat = (action: FormatAction) => {
+        const ta = textareaRef.current
+        if (!ta) return
+
+        const { value, selectionStart, selectionEnd } = applyFormat(
+            ta.value,
+            ta.selectionStart,
+            ta.selectionEnd,
+            action
+        )
+
+        // update state
+        handleBodyChange(value)
+
+        // restore selection after React re-render
+        requestAnimationFrame(() => {
+            ta.focus()
+            ta.setSelectionRange(selectionStart, selectionEnd)
+        })
+    }
+
+    const handleUndo = () => {
+        textareaRef.current?.focus()
+        document.execCommand('undo')
+    }
+
+    const handleRedo = () => {
+        textareaRef.current?.focus()
+        document.execCommand('redo')
     }
 
     const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0
@@ -119,9 +154,16 @@ export default function Editor({ note, notes, onSave, onNavigate }: Props) {
                 />
             </div>
 
+            <FormatToolbar
+                onAction={handleFormat}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+            />
+
             <div className="editor-body">
                 {(mode === 'edit' || mode === 'split') && (
                     <textarea
+                        ref={textareaRef}
                         className="editor-textarea"
                         value={body}
                         onChange={e => handleBodyChange(e.target.value)}
